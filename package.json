@@ -1,0 +1,23 @@
+{
+  "name": "auth0-azure-blob-sample",
+  "version": "1.0.0",
+  "description": "This sample uses Auth0 and Azure blob storage to securely share files without a server.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/auth0/auth0-azure-blob-sample.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/auth0/auth0-azure-blob-sample/issues"
+  },
+  "homepage": "https://github.com/auth0/auth0-azure-blob-sample",
+  "devDependencies": {
+    "azure-storage": "^0.4.1",
+    "commander": "^2.5.0"
+  }
+}
