@@ -19,5 +19,9 @@
   "devDependencies": {
     "azure-storage": "^0.4.1",
     "commander": "^2.5.0"
+  },
+  "dependencies": {
+    "restler": "^3.2.2",
+    "underscore": "^1.7.0"
   }
 }

@@ -78,3 +78,8 @@ Run it on port 1338
 
 And point your browser to <http://localhost:1338>
 
+## Running CLI Tools
+
+export AZURE_STORAGE_ACCOUNT=foo
+export AZURE_STORAGE_ACCESS_KEY=baz
+export AUTH0_API_AUTH_TOKEN=
