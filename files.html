@@ -54,6 +54,9 @@
 
 
       <div class="col-sm-3 left">
+        <div id="container-list" class="sidebar-module">
+
+        </div>
         <div class="get-auth-left">
           <a href="http://auth0.com"><img src="https://raw.githubusercontent.com/auth0/styleguide/master/img/logo.png">
           </a>
@@ -64,6 +67,17 @@
 
     </div>
   </div>
+
+
+  <script id="container-list-template" type="text/x-handlebars-template">
+    <h3>Containers</h3>
+    <ol class="list-unstyled">
+      {{#each containers}}
+      <li><a class="container-selector" href="#" data-key="{{name}}">{{name}}</a>
+      </li>
+      {{/each}}
+    </ol>
+  </script>
 
   <script id="login-info-template" type="text/x-handlebars-template">
     <img src="{{avatar}}"><span>Welcome {{name}} </span> <a href="#_" class="logout">Logout</a>
@@ -96,43 +110,11 @@
 
   <script src="drop-anywhere/build.js"></script>
 
-  <script src="js/files.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/files.js"></script>
 
   <script type="text/javascript">
-  window.user = {
-    get: function() {
-      if (!store.get('profile')) return;
-      return {
-        profile: JSON.parse(store.get('profile')),
-        id_token: store.get('id_token')
-      };
-    }
-  };
-
-  (function() {
-    if (!user.get()) return location.href = store.get('path');
-
-    var source = $("#login-info-template").html();
-    var template = Handlebars.compile(source);
-    $('.login-info').html(template({
-      avatar: user.get().profile.picture,
-      name: user.get().profile.name
-    }));
-
-    $('.logout').on('click', function() {
-      var index = store.get('path')
-      store.clear();
-      location.href = index;
-    });
-
-    var containerName = 'foo';
-    getAzureBlobUri(containerName, undefined, window.config, function(data) {
-      console.log(data)
-    });
-    //bind_upload(containerName);
-    //refresh_list(containerName); 
-  })();
+  controller.load();
   </script>
 </body>
 

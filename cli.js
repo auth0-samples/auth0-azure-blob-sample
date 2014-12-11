@@ -49,6 +49,63 @@ program
   });
 
 program
+  .command('containerurl <container>')
+  .description('deletes a blob container')
+  .action(function(container) {
+    var tokenutil = require('./lib/tokenutil')
+    var request = require('request');
+
+    var getExpirationDate = function() {
+      var expiresOn = new Date();
+      expiresOn.setDate(expiresOn.getDate() + 2);
+      return expiresOn;
+    };
+
+    var accessPolicy = {
+      AccessPolicy: {
+        Expiry: getExpirationDate(),
+        ResourceType: 'c',
+        Permissions: 'rwdl'
+      }
+    }
+
+    var url = tokenutil.generateSignedUrl(container, undefined, accessPolicy);
+    url += '&comp=list&restype=container';
+    console.log(url);
+    request(url, function(error, response, body) {
+      console.log(body)
+    });
+  });
+
+program
+  .command('bloburl <container> <blob>')
+  .description('deletes a blob container')
+  .action(function(container, blob) {
+    var tokenutil = require('./lib/tokenutil')
+    var request = require('request');
+
+    var getExpirationDate = function() {
+      var expiresOn = new Date();
+      expiresOn.setDate(expiresOn.getDate() + 2);
+      return expiresOn;
+    };
+
+    var accessPolicy = {
+      AccessPolicy: {
+        Expiry: getExpirationDate(),
+        ResourceType: 'b',
+        Permissions: 'rwd'
+      }
+    }
+
+    var url = tokenutil.generateSignedUrl(container, blob, accessPolicy);
+    console.log(url);
+    request(url, function(error, response, body) {
+      console.log(body)
+    });
+  });
+
+program
   .command('remove-access <email> <container>')
   .description('removes all user permissions from a container')
   .action(function(email, container) {
