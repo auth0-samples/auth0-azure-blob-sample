@@ -32,8 +32,8 @@
 
       <div class="col-sm-9 right">
         <div class="files-list">
-          <input type="file" class="upload-file" style="display:none"><a href="#_" class="btn btn-primary upload-button"><i class="glyphicon glyphicon-cloud-upload"> </i><span>Upload Files</span></a>
-          <h3>Your files</h3>
+          <!-- <input type="file" class="upload-file" style="display:none"><a href="#_" class="btn btn-primary upload-button"><i class="glyphicon glyphicon-cloud-upload"> </i><span>Upload Files</span></a>
+          <h3>Your files</h3> -->
           <table class="table">
             <thead>
               <th style="width: 30px"></th>
@@ -57,7 +57,7 @@
         <div id="container-list" class="sidebar-module">
 
         </div>
-        <div class="get-auth-left">
+        <div class="sidebar-module get-auth-left">
           <a href="http://auth0.com"><img src="https://raw.githubusercontent.com/auth0/styleguide/master/img/logo.png">
           </a>
           <p>Identity infrastructure, for developers.</p><a href="https://www.auth0.com" class="signup btn btn-success">Learn More</a>
@@ -70,13 +70,11 @@
 
 
   <script id="container-list-template" type="text/x-handlebars-template">
-    <h3>Containers</h3>
-    <ol class="list-unstyled">
+    <ul class="nav nav-pills nav-stacked">
       {{#each containers}}
-      <li><a class="container-selector" href="#" data-key="{{name}}">{{name}}</a>
-      </li>
+      <li><a class="container-selector" href="#" data-key="{{name}}">{{name}}</a></li>
       {{/each}}
-    </ol>
+    </ul>
   </script>
 
   <script id="login-info-template" type="text/x-handlebars-template">
@@ -88,7 +86,7 @@
     <tr>
       <td> <i class="glyphicon glyphicon-file"></i>
       </td>
-      <td> <a target="_blank" href="{{url}}" class="file-item">{{name}}</a>
+      <td> <a target="_blank" href="#" class="file-item">{{name}}</a>
       </td>
       <td>{{date}}</td>
       <td>

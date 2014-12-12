@@ -23,12 +23,13 @@ var controller = (function() {
 
   var loadContainerMenu = function() {
     authService.getUserContainers(function(containers) {
+      containers.sort();
+
       var source = $("#container-list-template").html();
       var template = Handlebars.compile(source);
       var viewModel = {
         containers: containers
       };
-      console.log(viewModel)
       $('#container-list').html(template(viewModel));
       var elements = document.getElementsByClassName("container-selector");
       for (var i = elements.length - 1; i >= 0; i--) {
@@ -43,6 +44,11 @@ var controller = (function() {
   };
 
   var selectContainer = function(e) {
+    var elements = document.getElementsByClassName('container-selector');
+    for (var i = elements.length - 1; i >= 0; i--) {
+      elements[i].parentNode.classList.remove('active');
+    };
+    e.target.parentNode.classList.add('active');
     var containerName = e.target.getAttribute('data-key')
     authService.getAzureBlobUri({
       containerName: containerName
@@ -53,7 +59,22 @@ var controller = (function() {
   };
 
   var loadBlobList = function(blobs) {
+    blobs.sort(function(a, b) {
+      if (a.name > b.name) {
+        return 1;
+      }
+      if (a.name < b.name) {
+        return -1;
+      }
+      return 0;
+    })
 
+    var source = $("#files-template").html();
+    var template = Handlebars.compile(source);
+
+    $('.files').html(template({
+      files: blobs
+    }));
   };
 
 
@@ -66,6 +87,28 @@ var controller = (function() {
 var blobService = (function() {
 
   var listBlobsInContainer = function(uri, callback) {
+    var getElementValue = function(element, tagName) {
+      if (element) {
+        var elements = element.getElementsByTagName(tagName);
+        if (elements.length === 1) {
+          return elements[0].textContent;
+        }
+      }
+      return '';
+    }
+    var convertResponseToModel = function(data) {
+      var model = [];
+      var blobs = data.getElementsByTagName('Blob');
+      for (var i = blobs.length - 1; i >= 0; i--) {
+        var blob = blobs[i];
+        model.push({
+          name: getElementValue(blob, 'Name'),
+          contentType: getElementValue(blob, 'Content-Type'),
+          date: new Date(getElementValue(blob, 'Last-Modified')).toLocaleDateString(),
+        });
+      };
+      return model;
+    }
     var listBlobsUri = uri + '&restype=container&comp=list';
     $.ajax({
       url: listBlobsUri,
@@ -75,9 +118,8 @@ var blobService = (function() {
       //   xhr.setRequestHeader('Content-Length', requestBody.length);
       // },
       success: function(data, status) {
-        console.log(data);
-        console.log(status);
-        callback([]);
+        var model = convertResponseToModel(data);
+        callback(model);
       },
       error: function(xhr, desc, err) {
         console.log(desc);
@@ -119,7 +161,6 @@ var authService = (function(config) {
       blobName: options.blobName
     }, function(err, delegationResult) {
       var data = auth0.decodeJwt(delegationResult.id_token);
-      console.log(data);
       callback(data.blob_sas_uri);
     });
   };
@@ -250,6 +291,7 @@ var authService = (function(config) {
 //       $('.upload-button').removeAttr("disabled");
 //     });
 //   });
+
 
 //   var container = document.getElementById('drop-here');
 //   var drop = DropAnywhere(function(e) {
