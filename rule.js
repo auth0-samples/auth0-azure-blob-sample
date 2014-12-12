@@ -57,9 +57,6 @@ function(user, context, callback) {
   if (sharedAccessPolicy.AccessPolicy.Permissions) {
     var token = blobService.generateSharedAccessSignature(blobContainer, blobName, sharedAccessPolicy);
     var url = blobService.getUrl(blobContainer, blobName, token);
-    if (sharedAccessPolicy.AccessPolicy.ResourceType === 'c') {
-      url += '&comp=list&restype=container';
-    }
     user.blob_sas_uri = url;
   }
 

@@ -18,6 +18,16 @@ var controller = (function() {
       location.href = index;
     });
 
+    if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
+      alert('The File APIs are not fully supported in this browser.');
+    }
+
+    if (!(window.crypto && window.crypto.getRandomValues)) {
+      alert('This browser does not fully suppor the crypto APIs.');
+    }
+
+    bindUpload();
+    loadZeroClipboard();
     loadContainerMenu();
   };
 
@@ -49,12 +59,12 @@ var controller = (function() {
       elements[i].parentNode.classList.remove('active');
     };
     e.target.parentNode.classList.add('active');
-    var containerName = e.target.getAttribute('data-key')
+    var containerName = e.target.getAttribute('data-container')
     authService.getAzureBlobUri({
       containerName: containerName
     }, function(uri) {
-      console.log(uri)
-      blobService.listBlobsInContainer(uri, loadBlobList)
+      console.log('Listing blobs for ' + containerName);
+      blobService.listBlobsInContainer(uri, containerName, loadBlobList)
     });
   };
 
@@ -75,6 +85,146 @@ var controller = (function() {
     $('.files').html(template({
       files: blobs
     }));
+
+    bindBlobActions();
+  };
+
+  var clipboard;
+  var loadZeroClipboard = function() {
+    ZeroClipboard.config({
+      moviePath: "//cdnjs.cloudflare.com/ajax/libs/zeroclipboard/2.1.6/ZeroClipboard.swf"
+    });
+    clipboard = new ZeroClipboard(document.getElementById('share-copy-button'));
+    clipboard.on('ready', function(event) {
+
+      clipboard.on('aftercopy', function(event) {
+        console.log('Copied text to clipboard: ' + event.data['text/plain']);
+      });
+    });
+
+    clipboard.on('error', function(event) {
+      console.log('ZeroClipboard error of type "' + event.name + '": ' + event.message);
+      ZeroClipboard.destroy();
+    });
+  }
+
+  var bindBlobActions = function() {
+
+    var getUrlHandler = function(e, callback) {
+      var containerName = e.target.getAttribute('data-container')
+      var blobName = e.target.getAttribute('data-blob');
+      authService.getAzureBlobUri({
+        containerName: containerName,
+        blobName: blobName
+      }, callback);
+    }
+
+    $('.share-link').on('click', function(e) {
+      getUrlHandler(e, function(url) {
+        document.getElementById('share-input').value = url;
+        document.getElementById('share-copy-button').setAttribute('data-clipboard-text', url);
+        $('#share-dialog').modal().show();
+      });
+    });
+
+    $('.download-link').on('click', function(e) {
+      getUrlHandler(e, function(url) {
+        console.log('Downloading file');
+        document.location = url;
+      });
+    });
+  }
+
+  var removeFile = function() {
+
+  }
+
+  var uploadFile = function(file, callback) {
+
+    var uuid = function() {
+      // http://jsperf.com/uuid-generation-2
+      var buf = new Uint16Array(8);
+      window.crypto.getRandomValues(buf);
+      var S4 = function(num) {
+        var ret = num.toString(16);
+        while (ret.length < 4) {
+          ret = "0" + ret;
+        }
+        return ret;
+      };
+      return (S4(buf[0]) + S4(buf[1]) + "-" + S4(buf[2]) + "-" + S4(buf[3]) + "-" + S4(buf[4]) + "-" + S4(buf[5]) + S4(buf[6]) + S4(buf[7]));
+    }
+
+    var elements = document.getElementsByClassName('container-selector');
+    var containerName;
+    for (var i = elements.length - 1; i >= 0; i--) {
+      if (elements[i].parentNode.classList.contains('active')) {
+        containerName = elements[i].getAttribute('data-container');
+        break;
+      }
+    };
+
+    console.log('Uploading file to container: ' + containerName);
+
+    if (!containerName) {
+      var err = {
+        message: 'Cannot determine active container'
+      };
+      console.log(err.message);
+      callback(err);
+    } else {
+      authService.getAzureBlobUri({
+        containerName: containerName,
+        blobName: uuid()
+      }, function(url) {
+        console.log('Created url for new blob: ' + url);
+        blobService.uploadFile(url, file, callback);
+      });
+    }
+  }
+
+  var refreshBlobList = function(containerName) {
+    authService.getAzureBlobUri({
+      containerName: containerName
+    }, function(uri) {
+      console.log('Listing blobs for ' + containerName);
+      blobService.listBlobsInContainer(uri, containerName, loadBlobList)
+    });
+  }
+
+  var bindUpload = function(containerName) {
+    $('.upload-button').on('click', function() {
+      $('.upload-file').click();
+    });
+
+    $('.upload-file').on('change', function() {
+      $('.glyphicon').hide();
+      $('.upload-button span').hide();
+      $(".upload-button").append('<strong class="loading"><img src="img/loading.gif" /></strong>').attr("disabled", "disabled");
+
+      var file = this.files[0];
+      if (file) uploadFile(file, function(err) {
+        if (err) console.log('error uploading file');
+        $('.upload-button .glyphicon').show();
+        $('.upload-button span').show();
+        $('.upload-button .loading').remove();
+        $('.upload-button').removeAttr("disabled");
+      });
+    });
+
+
+    var container = document.getElementById('drop-here');
+    var drop = DropAnywhere(function(e) {
+      $('body').append('<img src="img/loading_black.gif" class="loading-global" />');
+      e.items.forEach(function(item) {
+
+        if (item) uploadFile(item, function(err) {
+          if (err) console.log('error uploading file');
+          $('.loading-global').remove();
+        });
+      });
+
+    });
   };
 
 
@@ -86,7 +236,7 @@ var controller = (function() {
 
 var blobService = (function() {
 
-  var listBlobsInContainer = function(uri, callback) {
+  var listBlobsInContainer = function(uri, conatinerName, callback) {
     var getElementValue = function(element, tagName) {
       if (element) {
         var elements = element.getElementsByTagName(tagName);
@@ -102,6 +252,7 @@ var blobService = (function() {
       for (var i = blobs.length - 1; i >= 0; i--) {
         var blob = blobs[i];
         model.push({
+          container: conatinerName,
           name: getElementValue(blob, 'Name'),
           contentType: getElementValue(blob, 'Content-Type'),
           date: new Date(getElementValue(blob, 'Last-Modified')).toLocaleDateString(),
@@ -113,10 +264,6 @@ var blobService = (function() {
     $.ajax({
       url: listBlobsUri,
       type: "GET",
-      // beforeSend: function(xhr) {
-      //   xhr.setRequestHeader('x-ms-blob-content-type', selectedFile.type);
-      //   xhr.setRequestHeader('Content-Length', requestBody.length);
-      // },
       success: function(data, status) {
         var model = convertResponseToModel(data);
         callback(model);
@@ -129,8 +276,124 @@ var blobService = (function() {
 
   }
 
+  // From: http://gauravmantri.com/2013/02/16/uploading-large-files-in-windows-azure-blob-storage-using-shared-access-signature-html-and-javascript/
+  var maxBlockSize = 256 * 1024; //Each file will be split in 256 KB.
+  var numberOfBlocks = 1;
+  var selectedFile = null;
+  var currentFilePointer = 0;
+  var totalBytesRemaining = 0;
+  var blockIds = new Array();
+  var blockIdPrefix = "block-";
+  var submitUri = null;
+  var bytesUploaded = 0;
+
+  function uploadFile(uri, file) {
+    maxBlockSize = 256 * 1024;
+    currentFilePointer = 0;
+    totalBytesRemaining = 0;
+    var fileSize = file.size;
+    if (fileSize < maxBlockSize) {
+      maxBlockSize = fileSize;
+      console.log("max block size = " + maxBlockSize);
+    }
+    totalBytesRemaining = fileSize;
+    if (fileSize % maxBlockSize == 0) {
+      numberOfBlocks = fileSize / maxBlockSize;
+    } else {
+      numberOfBlocks = parseInt(fileSize / maxBlockSize, 10) + 1;
+    }
+    console.log("total blocks = " + numberOfBlocks);
+    submitUri = uri;
+    selectedFile = file;
+    uploadFileInBlocks();
+  }
+
+  var reader = new FileReader();
+
+  reader.onloadend = function(evt) {
+    if (evt.target.readyState == FileReader.DONE) { // DONE == 2
+      var uri = submitUri + '&comp=block&blockid=' + blockIds[blockIds.length - 1];
+      var requestData = new Uint8Array(evt.target.result);
+      $.ajax({
+        url: uri,
+        type: "PUT",
+        data: requestData,
+        processData: false,
+        beforeSend: function(xhr) {
+          xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
+        },
+        success: function(data, status) {
+          console.log(data);
+          console.log(status);
+          bytesUploaded += requestData.length;
+          var percentComplete = ((parseFloat(bytesUploaded) / parseFloat(selectedFile.size)) * 100).toFixed(2);
+          console.log(percentComplete + '%');
+          uploadFileInBlocks();
+        },
+        error: function(xhr, desc, err) {
+          console.log(desc);
+          console.log(err);
+        }
+      });
+    }
+  };
+
+  function uploadFileInBlocks() {
+    if (totalBytesRemaining > 0) {
+      console.log("current file pointer = " + currentFilePointer + " bytes read = " + maxBlockSize);
+      var fileContent = selectedFile.slice(currentFilePointer, currentFilePointer + maxBlockSize);
+      var blockId = blockIdPrefix + pad(blockIds.length, 6);
+      console.log("block id = " + blockId);
+      blockIds.push(btoa(blockId));
+      reader.readAsArrayBuffer(fileContent);
+      currentFilePointer += maxBlockSize;
+      totalBytesRemaining -= maxBlockSize;
+      if (totalBytesRemaining < maxBlockSize) {
+        maxBlockSize = totalBytesRemaining;
+      }
+    } else {
+      commitBlockList();
+    }
+  }
+
+  function commitBlockList() {
+    var uri = submitUri + '&comp=blocklist';
+    console.log(uri);
+    var requestBody = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
+    for (var i = 0; i < blockIds.length; i++) {
+      requestBody += '<Latest>' + blockIds[i] + '</Latest>';
+    }
+    requestBody += '</BlockList>';
+    console.log(requestBody);
+    $.ajax({
+      url: uri,
+      type: "PUT",
+      data: requestBody,
+      beforeSend: function(xhr) {
+        xhr.setRequestHeader('x-ms-blob-content-type', selectedFile.type);
+      },
+      success: function(data, status) {
+        console.log(data);
+        console.log(status);
+      },
+      error: function(xhr, desc, err) {
+        console.log(desc);
+        console.log(err);
+      }
+    });
+  }
+
+  function pad(number, length) {
+    var str = '' + number;
+    while (str.length < length) {
+      str = '0' + str;
+    }
+    return str;
+  }
+
   return {
-    "listBlobsInContainer": listBlobsInContainer
+    "listBlobsInContainer": listBlobsInContainer,
+    "uploadFile": uploadFile
   }
 })();
 
@@ -187,261 +450,3 @@ var authService = (function(config) {
   }
 
 })(window.config);
-
-
-
-
-// /**
-//  * List files from a bucket
-//  *
-//  * @param {Bucket} bucket
-//  * @param {function} callback
-//  */
-// function list_files(containerName, callback) {
-//   getAzureBlobUri('foo', undefined, window.config, function(data) {
-//     console.log(data)
-//   });
-//   bucket.listObjects({
-//     Prefix: folder_prefix + user.get().profile.user_id
-//   }, function(err, data) {
-//     if (err) return callback(err);
-//     var files = [];
-
-//     for (var i in data.Contents) {
-//       bucket.getSignedUrl('getObject', {
-//         Expires: 24 * 60,
-//         Key: data.Contents[i].Key
-//       }, function(err, url_bucket) {
-//         files.push({
-//           url: url_bucket,
-//           name: data.Contents[i].Key.replace(folder_prefix + user.get().profile.user_id + '/', ''),
-//           date: moment(new Date(data.Contents[i].LastModified)).fromNow(),
-//           key: data.Contents[i].Key
-//         });
-//       });
-//     }
-
-//     var source = $("#files-template").html();
-//     var template = Handlebars.compile(source);
-
-//     $('.files').html(template({
-//       files: files
-//     }));
-
-
-//     callback();
-//   });
-// }
-
-// function bind_actions(containerName) {
-//   $('.share-link').unbind('click');
-//   $('.remove').unbind('click');
-
-
-//   $(".share-link").click(function() {
-//     $("#global-zeroclipboard-flash-bridge").click();
-//   });
-
-
-//   ZeroClipboard.config({
-//     moviePath: "http://cdnjs.cloudflare.com/ajax/libs/zeroclipboard/1.3.2/ZeroClipboard.swf"
-//   });
-//   var client = new ZeroClipboard($('.share-link'));
-//   client.on('complete', function(client, args) {
-//     console.log('Link copied to your clipboard!')
-//   });
-
-//   client.on('dataRequested', share_file(bucket, client, {
-//     clipboard: true
-//   }));
-//   $('.share-link').on('click', share_file(bucket, client, {
-//     clipboard: false
-//   }));
-//   $('.remove').on('click', remove_file(bucket));
-
-//   $('#global-zeroclipboard-html-bridge').attr('title', "Copy Link").tooltip();
-
-//   $('#global-zeroclipboard-html-bridge').click(function() {
-
-//     $(this).attr('title', 'Copied!').tooltip('fixTitle').tooltip('show');
-
-//     $(this).attr('data-original-title', "Copy Link").tooltip('fixTitle');
-
-//   });
-
-// }
-
-// function bind_upload(containerName) {
-//   $('.upload-button').on('click', function() {
-//     $('.upload-file').click();
-//   });
-
-//   $('.upload-file').on('change', function() {
-//     $('.glyphicon').hide();
-//     $('.upload-button span').hide();
-//     $(".upload-button").append('<strong class="loading"><img src="img/loading.gif" /></strong>').attr("disabled", "disabled");
-
-//     var file = this.files[0];
-//     if (file) upload_file(bucket, file, function(err) {
-//       if (err) console.log('error uploading file');
-//       refresh_list(bucket);
-//       $('.upload-button .glyphicon').show();
-//       $('.upload-button span').show();
-//       $('.upload-button .loading').remove();
-//       $('.upload-button').removeAttr("disabled");
-//     });
-//   });
-
-
-//   var container = document.getElementById('drop-here');
-//   var drop = DropAnywhere(function(e) {
-//     $('body').append('<img src="img/loading_black.gif" class="loading-global" />');
-//     e.items.forEach(function(item) {
-
-//       if (item) upload_file(bucket, item, function(err) {
-//         if (err) console.log('error uploading file');
-
-//         $('.loading-global').remove();
-//         refresh_list(bucket);
-//       });
-//     });
-
-//   });
-// }
-
-// // ---- uploader ---- //
-// //----------------------------------------------------------------------------//
-// var maxBlockSize = 256 * 1024; //Each file will be split in 256 KB.
-// var numberOfBlocks = 1;
-// var selectedFile = null;
-// var currentFilePointer = 0;
-// var totalBytesRemaining = 0;
-// var blockIds = new Array();
-// var blockIdPrefix = "block-";
-// var submitUri = null;
-// var bytesUploaded = 0;
-
-// $(document).ready(function() {
-//   $("#output").hide();
-//   $("#file").bind('change', handleFileSelect);
-//   if (window.File && window.FileReader && window.FileList && window.Blob) {
-//     // Great success! All the File APIs are supported.
-//   } else {
-//     alert('The File APIs are not fully supported in this browser.');
-//   }
-// });
-
-// //Read the file and find out how many blocks we would need to split it.
-// function handleFileSelect(e) {
-//   maxBlockSize = 256 * 1024;
-//   currentFilePointer = 0;
-//   totalBytesRemaining = 0;
-//   var files = e.target.files;
-//   selectedFile = files[0];
-//   $("#output").show();
-//   $("#fileName").text(selectedFile.name);
-//   $("#fileSize").text(selectedFile.size);
-//   $("#fileType").text(selectedFile.type);
-//   var fileSize = selectedFile.size;
-//   if (fileSize < maxBlockSize) {
-//     maxBlockSize = fileSize;
-//     console.log("max block size = " + maxBlockSize);
-//   }
-//   totalBytesRemaining = fileSize;
-//   if (fileSize % maxBlockSize == 0) {
-//     numberOfBlocks = fileSize / maxBlockSize;
-//   } else {
-//     numberOfBlocks = parseInt(fileSize / maxBlockSize, 10) + 1;
-//   }
-//   console.log("total blocks = " + numberOfBlocks);
-//   var baseUrl = $("#sasUrl").val();
-//   var indexOfQueryStart = baseUrl.indexOf("?");
-//   submitUri = baseUrl.substring(0, indexOfQueryStart) + '/' + selectedFile.name + baseUrl.substring(indexOfQueryStart);
-//   console.log(submitUri);
-// }
-
-// var reader = new FileReader();
-
-// reader.onloadend = function(evt) {
-//   if (evt.target.readyState == FileReader.DONE) { // DONE == 2
-//     var uri = submitUri + '&comp=block&blockid=' + blockIds[blockIds.length - 1];
-//     var requestData = new Uint8Array(evt.target.result);
-//     $.ajax({
-//       url: uri,
-//       type: "PUT",
-//       data: requestData,
-//       processData: false,
-//       beforeSend: function(xhr) {
-//         xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
-//         xhr.setRequestHeader('Content-Length', requestData.length);
-//       },
-//       success: function(data, status) {
-//         console.log(data);
-//         console.log(status);
-//         bytesUploaded += requestData.length;
-//         var percentComplete = ((parseFloat(bytesUploaded) / parseFloat(selectedFile.size)) * 100).toFixed(2);
-//         $("#fileUploadProgress").text(percentComplete + " %");
-//         uploadFileInBlocks();
-//       },
-//       error: function(xhr, desc, err) {
-//         console.log(desc);
-//         console.log(err);
-//       }
-//     });
-//   }
-// };
-
-// function uploadFileInBlocks() {
-//   if (totalBytesRemaining > 0) {
-//     console.log("current file pointer = " + currentFilePointer + " bytes read = " + maxBlockSize);
-//     var fileContent = selectedFile.slice(currentFilePointer, currentFilePointer + maxBlockSize);
-//     var blockId = blockIdPrefix + pad(blockIds.length, 6);
-//     console.log("block id = " + blockId);
-//     blockIds.push(btoa(blockId));
-//     reader.readAsArrayBuffer(fileContent);
-//     currentFilePointer += maxBlockSize;
-//     totalBytesRemaining -= maxBlockSize;
-//     if (totalBytesRemaining < maxBlockSize) {
-//       maxBlockSize = totalBytesRemaining;
-//     }
-//   } else {
-//     commitBlockList();
-//   }
-// }
-
-// function commitBlockList() {
-//   var uri = submitUri + '&comp=blocklist';
-//   console.log(uri);
-//   var requestBody = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
-//   for (var i = 0; i < blockIds.length; i++) {
-//     requestBody += '<Latest>' + blockIds[i] + '</Latest>';
-//   }
-//   requestBody += '</BlockList>';
-//   console.log(requestBody);
-//   $.ajax({
-//     url: uri,
-//     type: "PUT",
-//     data: requestBody,
-//     beforeSend: function(xhr) {
-//       xhr.setRequestHeader('x-ms-blob-content-type', selectedFile.type);
-//       xhr.setRequestHeader('Content-Length', requestBody.length);
-//     },
-//     success: function(data, status) {
-//       console.log(data);
-//       console.log(status);
-//     },
-//     error: function(xhr, desc, err) {
-//       console.log(desc);
-//       console.log(err);
-//     }
-//   });
-
-// }
-
-// function pad(number, length) {
-//   var str = '' + number;
-//   while (str.length < length) {
-//     str = '0' + str;
-//   }
-//   return str;
-// }
