@@ -5,41 +5,72 @@
   <title>azure-blob-share</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
-
-  <link href="drop-anywhere/build.css" rel="stylesheet">
-  <link href="css/app.css" rel="stylesheet">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+  <link href="css/dashboard.css" rel="stylesheet">
+  <!-- <link href="css/app.css" rel="stylesheet"> -->
   <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
       <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
     <![endif]-->
 </head>
 
-<body id="drop-here">
-  <div class="files-page">
-    <div class="container">
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#">Auth0 Azure Blob Share</a>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul id="navbar-menu" class="nav navbar-nav navbar-right">
+          <li class="active"><a>Files</a>
+          </li>
+          <li><a href="/users.html">Users</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-      <header class="site-header clearfix">
-        <div class="col-xs-4">
-          <h1><a href="">azure-blob-share</a></h1>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-3 col-md-2 sidebar">
+        <ul id="container-list" class="nav nav-sidebar">
+        </ul>
+        <div class="nav-sidebar get-auth-left">
+          <a href="http://auth0.com"><img src="https://raw.githubusercontent.com/auth0/styleguide/master/img/logo.png">
+          </a>
+          <p>Identity infrastructure, for developers.</p><a href="https://www.auth0.com" class="signup btn btn-success">Learn More</a>
         </div>
-        <div class="col-xs-8">
-          <div class="login-info"></div>
+      </div>
+      <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+        <div class="row page-header">
+          <div class="col-md-4">
+            <p>Files</p>
+          </div>
+
+          <div class="col-md-8">
+            <input type="file" class="upload-file" style="display:none"><a href="#_" class="pull-right btn btn-primary upload-button"><i class="glyphicon glyphicon-cloud-upload pull"></i><span>Upload Files</span></a>
+          </div>
         </div>
-      </header>
 
 
 
-      <div class="col-sm-9 right">
-        <div class="files-list">
-          <input type="file" class="upload-file" style="display:none"><a href="#_" class="btn btn-primary upload-button"><i class="glyphicon glyphicon-cloud-upload"> </i><span>Upload Files</span></a>
-          <table class="table">
+        <div class="table-responsive">
+          <table class="table table-striped files-list">
             <thead>
-              <th style="width: 30px"></th>
-              <th style="width: 50%">Name</th>
-              <th>Created</th>
-              <th>&nbsp;</th>
-              <th>&nbsp;</th>
+              <tr>
+                <th style="width: 30px"></th>
+                <th>Name</th>
+                <th style="width: 100px">Created</th>
+                <th style="width: 30px">&nbsp;</th>
+                <th style="width: 30px">&nbsp;</th>
+              </tr>
             </thead>
             <tbody class="files">
               <tr>
@@ -50,20 +81,6 @@
           </table>
         </div>
       </div>
-
-
-      <div class="col-sm-3 left">
-        <div id="container-list" class="sidebar-module">
-
-        </div>
-        <div class="sidebar-module get-auth-left">
-          <a href="http://auth0.com"><img src="https://raw.githubusercontent.com/auth0/styleguide/master/img/logo.png">
-          </a>
-          <p>Identity infrastructure, for developers.</p><a href="https://www.auth0.com" class="signup btn btn-success">Learn More</a>
-        </div>
-      </div>
-
-
     </div>
   </div>
 
@@ -90,16 +107,25 @@
   </div>
 
   <script id="container-list-template" type="text/x-handlebars-template">
-    <ul class="nav nav-pills nav-stacked">
-      {{#each containers}}
-      <li><a class="container-selector" href="#" data-container="{{name}}">{{name}}</a>
-      </li>
-      {{/each}}
-    </ul>
+    {{#each containers}}
+    <li><a class="container-selector" href="#" data-container="{{name}}">{{name}}</a>
+    </li>
+    {{/each}}
   </script>
 
   <script id="login-info-template" type="text/x-handlebars-template">
-    <img src="{{avatar}}"><span>Welcome {{name}} </span> <a href="#_" class="logout">Logout</a>
+    <li class="dropdown">
+      <a href="#" class="dropdown-toggle profile-image-dropdown" data-toggle="dropdown">
+        <img src="{{avatar}}" class="profile-image img-circle"> {{name}} <b class="caret"></b>
+      </a>
+      <ul class="dropdown-menu">
+        <li><a href="#"><i class="fa fa-cog"></i> Account</a>
+        </li>
+        <li class="divider"></li>
+        <li><a href="#"><i class="fa fa-sign-out logout"></i> Logout</a>
+        </li>
+      </ul>
+    </li>
   </script>
 
   <script id="files-template" type="text/x-handlebars-template">
@@ -127,8 +153,7 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
   <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 
-  <script src="drop-anywhere/build.js"></script>
-
+  <script src="js/drop-anywhere.js"></script>
   <script src="js/config.js"></script>
   <script src="js/files.js"></script>
 

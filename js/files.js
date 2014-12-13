@@ -7,7 +7,7 @@ var controller = (function() {
 
     var source = $("#login-info-template").html();
     var template = Handlebars.compile(source);
-    $('.login-info').html(template({
+    $('#navbar-menu').append(template({
       avatar: authService.user.get().profile.picture,
       name: authService.user.get().profile.name
     }));
@@ -178,7 +178,12 @@ var controller = (function() {
         blobName: uuid()
       }, function(url) {
         console.log('Created url for new blob: ' + url);
-        blobService.uploadFile(url, file, callback);
+        blobService.uploadFile(url, file, function(err) {
+          if (!err) {
+            refreshBlobList(containerName);
+          }
+          callback(err);
+        });
       });
     }
   }
@@ -286,11 +291,20 @@ var blobService = (function() {
   var blockIdPrefix = "block-";
   var submitUri = null;
   var bytesUploaded = 0;
+  var uploadCompleteCallback = null;
 
-  function uploadFile(uri, file) {
+  function uploadFile(uri, file, callback) {
     maxBlockSize = 256 * 1024;
+    numberOfBlocks = 1;
+    selectedFile = null;
     currentFilePointer = 0;
     totalBytesRemaining = 0;
+    blockIds = new Array();
+    blockIdPrefix = "block-";
+    submitUri = null;
+    bytesUploaded = 0;
+    uploadCompleteCallback = null;
+
     var fileSize = file.size;
     if (fileSize < maxBlockSize) {
       maxBlockSize = fileSize;
@@ -305,6 +319,7 @@ var blobService = (function() {
     console.log("total blocks = " + numberOfBlocks);
     submitUri = uri;
     selectedFile = file;
+    uploadCompleteCallback = callback;
     uploadFileInBlocks();
   }
 
@@ -371,14 +386,21 @@ var blobService = (function() {
       data: requestBody,
       beforeSend: function(xhr) {
         xhr.setRequestHeader('x-ms-blob-content-type', selectedFile.type);
+        xhr.setRequestHeader('x-ms-blob-content-disposition', 'attachment')
       },
       success: function(data, status) {
         console.log(data);
         console.log(status);
+        if (uploadCompleteCallback) {
+          uploadCompleteCallback();
+        }
       },
       error: function(xhr, desc, err) {
         console.log(desc);
         console.log(err);
+        if (uploadCompleteCallback) {
+          uploadCompleteCallback(err);
+        }
       }
     });
   }

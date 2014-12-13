@@ -1,0 +1,218 @@
+/*
+ * Base structure
+ */
+/* Move down content because we have a fixed navbar that is 50px tall */
+
+body {
+  padding-top: 50px;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 {
+  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+  font-weight: lighter;
+}
+
+/*
+ * Global add-ons
+ */
+
+.sub-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+/*
+ * Top navigation
+ * Hide default border to remove 1px line.
+ */
+
+.navbar-fixed-top {
+  border: 0;
+}
+
+.profile-image{
+  width: 30px;
+  margin-right: 10px;
+  border-radius: 40px;
+}
+.navbar-nav>li>a.profile-image-dropdown {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/*
+ * Sidebar
+ */
+/* Hide for mobile, show later */
+
+.sidebar {
+  display: none;
+}
+@media (min-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 51px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    display: block;
+    padding: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* Scrollable contents if viewport is shorter than content. */
+    
+    background-color: #f5f5f5;
+    border-right: 1px solid #eee;
+  }
+}
+/* Sidebar navigation */
+
+.nav-sidebar {
+  margin-right: -21px;
+  /* 20px padding + 1px border */
+  
+  margin-bottom: 20px;
+  margin-left: -20px;
+}
+.nav-sidebar > li > a {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+.nav-sidebar > .active > a, .nav-sidebar > .active > a:hover, .nav-sidebar > .active > a:focus {
+  color: #fff;
+  background-color: #428bca;
+}
+/*
+ * Main content
+ */
+
+.main {
+  padding: 20px;
+}
+@media (min-width: 768px) {
+  .main {
+    padding-right: 40px;
+    padding-left: 40px;
+  }
+}
+.main .page-header {
+  margin-top: 0;
+}
+.page-header p {
+  font-size: 24px;
+}
+.page-header i {
+  padding-right: 5px;
+}
+/*
+ * Placeholder dashboard ideas
+ */
+
+.placeholders {
+  margin-bottom: 30px;
+  text-align: center;
+}
+.placeholders h4 {
+  margin-bottom: 0;
+}
+.placeholder {
+  margin-bottom: 20px;
+}
+.placeholder img {
+  display: inline-block;
+  border-radius: 50%;
+}
+/*
+ * Auth0 Sidebar 
+ */
+
+.get-auth-left {
+  background-color: #4e7ac7;
+  background: linear-gradient(45deg, #14204d 0%, #3cc8f4 100%);
+  color: #fff;
+  padding: 20px 10px;
+  text-align: center;
+  border-radius: 3px;
+  margin-right: 0px;
+  margin-left: 0px;
+}
+.get-auth-left .icon-badge {
+  background: #fff;
+  display: block;
+  width: 60px;
+  height: 60px;
+  border-radius: 3px;
+  margin: auto;
+  margin-bottom: 10px;
+}
+.get-auth-left img {
+  max-width: 40%;
+  margin: auto;
+  margin-bottom: 10px;
+}
+.get-auth-left h3 {
+  margin-top: 0;
+  font-weight: 200;
+}
+.get-auth-left h3 a {
+  color: #fff;
+  font-weight: bold;
+}
+.get-auth-left p {
+  opacity: 0.6;
+}
+.get-auth-left .btn {
+  margin-top: 10px;
+  background-color: #eb5422;
+}
+.get-auth-left .btn:hover {
+  background-color: #ad3710;
+}
+/*
+ * Drop Anywhere
+ */
+
+#drop-anywhere {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, .8);
+  display: none;
+  line-height: 500px;
+  text-align: center;
+  color: #fff;
+  display: none;
+}
+#drop-anywhere::before {
+  content: 'Drop to upload!';
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+}
+#drop-anywhere.show {
+  display: block;
+  -webkit-animation: show 300ms;
+}
+
+.files-list a {
+  font-weight: bold;
+}
+.files-list tbody tr:hover {
+  background: #f9f9f9;
+}
+.files-list tbody tr a.glyphicon-link {
+  color: #000;
+  font-weight: normal;
+}
+.files-list tbody tr a.glyphicon-link:hover {
+  color: #00f;
+  cursor: pointer;
+  text-decoration: none;
+}
+.files-list tbody tr .glyphicon-trash:hover {
+  color: #f00;
+  cursor: pointer;
+  text-decoration: none;
+}
+
