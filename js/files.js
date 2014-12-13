@@ -207,14 +207,21 @@ var controller = (function() {
       $('.upload-button span').hide();
       $(".upload-button").append('<strong class="loading"><img src="img/loading.gif" /></strong>').attr("disabled", "disabled");
 
-      var file = this.files[0];
-      if (file) uploadFile(file, function(err) {
+      var removeUploadingMessage = function(err) {
         if (err) console.log('error uploading file');
         $('.upload-button .glyphicon').show();
         $('.upload-button span').show();
         $('.upload-button .loading').remove();
         $('.upload-button').removeAttr("disabled");
-      });
+      }
+
+      var file = this.files[0];
+      if (file) {
+        uploadFile(file,removeUploadingMessage);
+      } else {
+        // Upload canceled
+        removeUploadingMessage();
+      }
     });
 
 
@@ -251,6 +258,18 @@ var blobService = (function() {
       }
       return '';
     }
+
+    var getFileName = function(element) {
+      var cd = getElementValue(element, 'Content-Disposition');
+      var name;
+      if (cd && cd.length > 0) {
+        name = cd.substring(22, cd.length - 1);
+      }
+      if (!name) {
+        name = getElementValue(element, 'Name');
+      }
+      return name;
+    }
     var convertResponseToModel = function(data) {
       var model = [];
       var blobs = data.getElementsByTagName('Blob');
@@ -259,6 +278,7 @@ var blobService = (function() {
         model.push({
           container: conatinerName,
           name: getElementValue(blob, 'Name'),
+          fileName: getFileName(blob),
           contentType: getElementValue(blob, 'Content-Type'),
           date: new Date(getElementValue(blob, 'Last-Modified')).toLocaleDateString(),
         });
@@ -266,6 +286,8 @@ var blobService = (function() {
       return model;
     }
     var listBlobsUri = uri + '&restype=container&comp=list';
+    console.log('Listing blobs:');
+    console.log(listBlobsUri);
     $.ajax({
       url: listBlobsUri,
       type: "GET",
@@ -386,7 +408,7 @@ var blobService = (function() {
       data: requestBody,
       beforeSend: function(xhr) {
         xhr.setRequestHeader('x-ms-blob-content-type', selectedFile.type);
-        xhr.setRequestHeader('x-ms-blob-content-disposition', 'attachment')
+        xhr.setRequestHeader('x-ms-blob-content-disposition', 'attachment; filename=\"' + selectedFile.name + '\"');
       },
       success: function(data, status) {
         console.log(data);
