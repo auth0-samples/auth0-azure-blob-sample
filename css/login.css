@@ -8,20 +8,6 @@ h1, h2, h3 {
 body.home {
   background: #d1d2d4;
 }
-/*a:hover {
-  text-decoration: none;
-}
-.btn {
-  border: 0;
-  font-weight: bold;
-  text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 1px;
-  line-height: 22px;
-}
-.btn.btn-success {
-  background-color: #94c231;
-}*/
 .login-page .login-box {
   margin: 5% auto;
   background: #fff;
@@ -91,69 +77,6 @@ body.home {
   right: 20px;
   opacity: 0.8;
 }
-#drop-anywhere {
-  line-height: 500px;
-  text-align: center;
-  color: #fff;
-  display: none;
-}
-#drop-anywhere::before {
-  content: 'Drop to upload!';
-  font-size: 30px;
-  font-weight: bold;
-  text-align: center;
-}
-#drop-anywhere.show {
-  -webkit-animation: show 300ms;
-}
-/*#container-list {
-  margin-bottom: 30px;
-}
-.files-page header.site-header {
-  margin-bottom: 50px;
-}
-.files-page header.site-header h1 {
-  font-size: 20px;
-}
-.files-page header.site-header h1 a {
-  color: #000;
-}
-.files-page header.site-header .login-info {
-  text-align: right;
-  margin-top: 20px;
-  font-size: 12px;
-}
-.files-page header.site-header .login-info span {
-  opacity: 0.5;
-}
-.files-page header.site-header .login-info img {
-  width: 30px;
-  margin-right: 10px;
-  border-radius: 40px;
-}*/
-
-/*.files-page .files-list h3 {
-  margin-top: 0;
-  margin-bottom: 30px;
-  float: left;
-}
-.files-page .files-list a {
-  font-weight: bold;
-}
-.files-page .files-list tbody tr:hover {
-  background: #f9f9f9;
-}
-.files-page .files-list tbody tr a.glyphicon-link {
-  color: #000;
-  font-weight: normal;
-}
-.files-page .files-list tbody tr a.glyphicon-link:hover {
-  color: #00f;
-}
-.files-page .files-list tbody tr .glyphicon-trash:hover {
-  color: #f00;
-  cursor: pointer;
-}*/
 /*footer {
   text-align: center;
 }
@@ -233,7 +156,7 @@ footer a {
   }
 }
 
-/*.left {
+.left {
   float: left;
 }
 .right {
@@ -254,7 +177,7 @@ footer a {
   .login-page .get-auth0 {
     min-width: 0;
     padding: 10px;
-    position: static;
+    position: fixed;
   }
   .login-page .get-auth0 h3 span {
     display: block;
@@ -295,7 +218,7 @@ footer a {
   .get-auth-left {
     float: none;
   }
-}*/
+}
 @-moz-keyframes get_auth0_text {
   0% {
     padding-right: 100px;
