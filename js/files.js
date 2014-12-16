@@ -22,7 +22,7 @@ var controller = (function() {
       alert('The File APIs are not fully supported in this browser.');
     }
 
-    if (!(window.crypto && window.crypto.getRandomValues && window.crypto.subtle)) {
+    if (!(window.crypto && window.crypto.getRandomValues && (window.crypto.subtle || window.crypto.webkitSubtle))) {
       alert('This browser does not fully suppor the crypto APIs.');
     }
 
@@ -350,25 +350,6 @@ var blobService = (function() {
     });
   }
 
-  // var createConatiner = function(url, friendlyName, callback) {
-  //   $.ajax({
-  //     url: url + '&restype=container',
-  //     type: "PUT",
-  //     beforeSend: function(xhr) {
-  //       //xhr.setRequestHeader('x-ms-date', new Date());
-  //       xhr.setRequestHeader('x-ms-meta-name', friendlyName);
-  //     },
-  //     success: function(data, status) {
-  //       callback();
-  //     },
-  //     error: function(xhr, desc, err) {
-  //       console.log(desc);
-  //       console.log(err);
-  //       callback(err);
-  //     }
-  //   });
-  // }
-
   // From: http://gauravmantri.com/2013/02/16/uploading-large-files-in-windows-azure-blob-storage-using-shared-access-signature-html-and-javascript/
   var maxBlockSize;
   var numberOfBlocks;
@@ -507,6 +488,74 @@ var blobService = (function() {
   }
 })();
 
+var authService = (function(config) {
+
+  var auth0 = new Auth0({
+    domain: config.domain,
+    clientID: config.clientId,
+    callbackURL: 'dummy'
+  });
+
+  var user = {
+    get: function() {
+      if (!store.get('profile')) return;
+      return {
+        profile: JSON.parse(store.get('profile')),
+        id_token: store.get('id_token')
+      };
+    }
+  };
+
+  var getAzureBlobUri = function(options, callback) {
+    auth0.getDelegationToken({
+      id_token: authService.user.get().id_token,
+      scope: "openid profile",
+      api_type: "app",
+      containerName: options.containerName,
+      blobName: options.blobName
+    }, function(err, delegationResult) {
+      var data = auth0.decodeJwt(delegationResult.id_token);
+      callback(data.blob_sas_uri);
+    });
+  };
+
+  var getUserContainers = function(callback) {
+    auth0.getDelegationToken({
+      id_token: user.get().id_token,
+      scope: "openid profile",
+      api_type: "app"
+    }, function(err, delegationResult) {
+      var data = auth0.decodeJwt(delegationResult.id_token);
+      if (data.containers) {
+        callback(data.containers);
+      } else {
+        callback([]);
+      }
+    });
+  };
+
+  var createUserContainer = function(containerName, containerFriendlyName, callback) {
+    auth0.getDelegationToken({
+      id_token: authService.user.get().id_token,
+      scope: "openid profile",
+      api_type: "app",
+      containerName: containerName,
+      containerFriendlyName: containerFriendlyName
+    }, function(err, delegationResult) {
+      var data = auth0.decodeJwt(delegationResult.id_token);
+      callback(data.blob_sas_uri);
+    });
+  }
+
+  return {
+    "user": user,
+    "getUserContainers": getUserContainers,
+    "getAzureBlobUri": getAzureBlobUri,
+    "createUserContainer": createUserContainer
+  }
+
+})(window.config);
+
 /*
 var cryptoService = (function() {
 
@@ -590,75 +639,6 @@ var cryptoService = (function() {
 
 })();
 */
-
-var authService = (function(config) {
-
-  var auth0 = new Auth0({
-    domain: config.domain,
-    clientID: config.clientId,
-    callbackURL: 'dummy'
-  });
-
-  var user = {
-    get: function() {
-      if (!store.get('profile')) return;
-      return {
-        profile: JSON.parse(store.get('profile')),
-        id_token: store.get('id_token')
-      };
-    }
-  };
-
-  var getAzureBlobUri = function(options, callback) {
-    auth0.getDelegationToken({
-      id_token: authService.user.get().id_token,
-      scope: "openid profile",
-      api_type: "app",
-      containerName: options.containerName,
-      blobName: options.blobName
-    }, function(err, delegationResult) {
-      var data = auth0.decodeJwt(delegationResult.id_token);
-      callback(data.blob_sas_uri);
-    });
-  };
-
-  var getUserContainers = function(callback) {
-    auth0.getDelegationToken({
-      id_token: user.get().id_token,
-      scope: "openid profile",
-      api_type: "app"
-    }, function(err, delegationResult) {
-      var data = auth0.decodeJwt(delegationResult.id_token);
-      if (data.containers) {
-        callback(data.containers);
-      } else {
-        callback([]);
-      }
-    });
-  };
-
-  var createUserContainer = function(containerName, containerFriendlyName, callback) {
-    auth0.getDelegationToken({
-      id_token: authService.user.get().id_token,
-      scope: "openid profile",
-      api_type: "app",
-      containerName: containerName,
-      containerFriendlyName: containerFriendlyName
-    }, function(err, delegationResult) {
-      var data = auth0.decodeJwt(delegationResult.id_token);
-      callback(data.blob_sas_uri);
-    });
-  }
-
-  return {
-    "user": user,
-    "getUserContainers": getUserContainers,
-    "getAzureBlobUri": getAzureBlobUri,
-    "createUserContainer": createUserContainer
-  }
-
-})(window.config);
-
 
 var uuid = function() {
   // http://jsperf.com/uuid-generation-2
