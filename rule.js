@@ -31,7 +31,19 @@ function(user, context, callback) {
       var data = JSON.parse(body);
       var app_metadata = data.app_metadata || {};
       app_metadata.containers = app_metadata.containers || [];
-      executeRule(app_metadata);
+      if (app_metadata.containers.length == 0) {
+        var containerName = crypto.createHash('md5').update(user.user_id).digest('hex');
+        var friendlyName = "Default";
+        createContainer(containerName, friendlyName, app_metadata, function(err, app_metadata) {
+          if (err) {
+            console.log(err);
+            throw err;
+          } 
+          executeRule(app_metadata);
+        })
+      } else {
+        executeRule(app_metadata);
+      }
     });
 
   var createContainer = function(containerName, containerFriendlyName, app_metadata, callback) {
@@ -76,7 +88,7 @@ function(user, context, callback) {
           }
         },
         function(error, response, body) {
-          callback(error);
+          callback(error, app_metadata);
         });
     });
   };
