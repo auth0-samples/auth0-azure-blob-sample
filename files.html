@@ -55,7 +55,13 @@
           </div>
 
           <div class="col-md-8">
-            <input type="file" class="upload-file" style="display:none"><a href="#_" class="pull-right btn btn-primary upload-button"><i class="glyphicon glyphicon-cloud-upload pull"></i><span>Upload Files</span></a>
+            <a href="#_" class="pull-right btn btn-primary create-button toolbar-button">
+              <i class="glyphicon glyphicon-folder-open pull"></i><span>New Folder</span>
+            </a>
+            <input type="file" class="upload-file" style="display:none">
+            <a href="#_" class="pull-right btn btn-primary upload-button toolbar-button">
+              <i class="glyphicon glyphicon-cloud-upload pull"></i><span>Upload File</span>
+            </a>
           </div>
         </div>
 
@@ -84,7 +90,7 @@
     </div>
   </div>
 
-  <div id="share-dialog" class="modal fade">
+  <div id="share-dialog" class="modal fade" role="dialog">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -106,9 +112,35 @@
     </div>
   </div>
 
+  <div id="folder-dialog" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+          </button>
+          <h4 class="modal-title">New Folder</h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-horizontal">
+            <div class="form-group">
+              <label class="sr-only" for="folder-input">Folder name</label>
+              <div class="col-sm-12">
+                <input type="input" class="form-control" id="folder-input" placeholder="Folder name">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="folder-save-button">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script id="container-list-template" type="text/x-handlebars-template">
     {{#each containers}}
-    <li><a class="container-selector" href="#" data-container="{{name}}">{{name}}</a>
+    <li><a class="container-selector" href="#" data-container="{{name}}">{{friendlyName}}</a>
     </li>
     {{/each}}
   </script>
@@ -139,7 +171,7 @@
       <td>
         <a data-container="{{container}}" data-blob="{{name}}" class="share-link glyphicon glyphicon-link"></a>
       </td>
-      <td><i title="Remove" data-container="{{container}}" data-blob="{{name}}" class="remove glyphicon glyphicon-trash"></i>
+      <td><i title="Remove" data-container="{{container}}" data-blob="{{name}}" class="remove-link glyphicon glyphicon-trash"></i>
       </td>
     </tr>
 

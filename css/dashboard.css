@@ -100,8 +100,11 @@ h1, h2, h3 {
 .page-header p {
   font-size: 24px;
 }
-.page-header i {
-  padding-right: 5px;
+.toolbar-button i {
+  margin-right: 10px;
+}
+.toolbar-button {
+  margin-left: 10px;
 }
 /*
  * Placeholder dashboard ideas
@@ -215,4 +218,6 @@ h1, h2, h3 {
   cursor: pointer;
   text-decoration: none;
 }
-
+.modal-backdrop {
+   background-color: red;
+}
