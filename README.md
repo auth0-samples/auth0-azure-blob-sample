@@ -1,6 +1,6 @@
 ## Backend-less dropbox clone
 
-This sample uses Auth0 and its integration with AWS APIs (S3, SES, DynamoDB, EC2, etc.) in combination with the powerful IAM policies.
+This sample uses Auth0 and its integration with Azure Blob Storage.
 
 **Demo: <http://auth0.github.io/auth0-s3-sample>**
 
