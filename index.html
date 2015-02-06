@@ -24,11 +24,9 @@
      <script src="js/config.js"></script>
 
      <script>
-      store.set('path', window.location.pathname);
-
       var lock = null;
       document.addEventListener("DOMContentLoaded", function(){
-        lock = new Auth0Lock('7TNKInU588NKxmt6CTccM6iuh3V2Zi70', 'ntotten-auth0.auth0.com');
+        lock = new Auth0Lock(window.config.clientId, window.config.domain);
       });
 
       document.getElementById('btn-login').addEventListener('click', function() {
@@ -40,12 +38,12 @@
             // Success calback
 
             // Save the JWT token.
-            store.set('id_token', token);
+            store.set('azure_sample_id_token', token);
 
             // Save the profile
-            store.set('profile', JSON.stringify(profile));
+            store.set('azure_sample_profile', JSON.stringify(profile));
 
-            location.href = 'files.html'
+            location.href = 'files.html';
           }
         });
       });

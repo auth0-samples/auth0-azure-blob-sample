@@ -40,8 +40,6 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-sm-3 col-md-2 sidebar">
-        <ul id="container-list" class="nav nav-sidebar">
-        </ul>
         <div class="nav-sidebar get-auth-left">
           <a href="http://auth0.com"><img src="https://raw.githubusercontent.com/auth0/styleguide/master/img/logo.png">
           </a>
@@ -55,9 +53,6 @@
           </div>
 
           <div class="col-md-8">
-            <a href="#_" class="pull-right btn btn-primary create-button toolbar-button">
-              <i class="glyphicon glyphicon-folder-open pull"></i><span>New Folder</span>
-            </a>
             <input type="file" class="upload-file" style="display:none">
             <a href="#_" class="pull-right btn btn-primary upload-button toolbar-button">
               <i class="glyphicon glyphicon-cloud-upload pull"></i><span>Upload File</span>
@@ -112,39 +107,6 @@
     </div>
   </div>
 
-  <div id="folder-dialog" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
-          </button>
-          <h4 class="modal-title">New Folder</h4>
-        </div>
-        <div class="modal-body">
-          <form class="form-horizontal">
-            <div class="form-group">
-              <label class="sr-only" for="folder-input">Folder name</label>
-              <div class="col-sm-12">
-                <input type="input" class="form-control" id="folder-input" placeholder="Folder name">
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" id="folder-save-button">Save</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script id="container-list-template" type="text/x-handlebars-template">
-    {{#each containers}}
-    <li><a class="container-selector" href="#" data-container="{{name}}">{{friendlyName}}</a>
-    </li>
-    {{/each}}
-  </script>
-
   <script id="login-info-template" type="text/x-handlebars-template">
     <li class="dropdown">
       <a href="#" class="dropdown-toggle profile-image-dropdown" data-toggle="dropdown">
@@ -154,7 +116,7 @@
         <li><a href="#"><i class="fa fa-cog"></i> Account</a>
         </li>
         <li class="divider"></li>
-        <li><a href="#"><i class="fa fa-sign-out logout"></i> Logout</a>
+        <li><a href="#" class="logout"><i class="fa fa-sign-out logout"></i> Logout</a>
         </li>
       </ul>
     </li>
@@ -182,8 +144,8 @@
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.3.0/handlebars.min.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/zeroclipboard/2.1.6/ZeroClipboard.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
   <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+  <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/sha1.js"></script>
 
   <script src="js/drop-anywhere.js"></script>
   <script src="js/config.js"></script>

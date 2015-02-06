@@ -2,8 +2,22 @@
 
 var controller = (function() {
 
+  var containerName;
+
   var load = function() {
-    if (!authService.user.get()) return location.href = store.get('path');
+    
+    var logoutPath = window.location.pathname.replace('files.html', 'index.html');
+    if (!authService.user.get()) {
+      return location.href = logoutPath;
+    }
+
+    if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
+      alert('The File APIs are not fully supported in this browser.');
+    }
+
+    if (!(window.crypto && window.crypto.getRandomValues)) {
+      alert('This browser does not fully support the crypto APIs.');
+    }
 
     var source = $("#login-info-template").html();
     var template = Handlebars.compile(source);
@@ -13,63 +27,42 @@ var controller = (function() {
     }));
 
     $('.logout').on('click', function() {
-      var index = store.get('path')
       store.clear();
-      location.href = index;
+      location.href = logoutPath;
     });
 
-    if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
-      alert('The File APIs are not fully supported in this browser.');
-    }
+    var user_id = authService.user.get().profile.user_id;
+    var hash = CryptoJS.SHA1(user_id).toString();
+    containerName = hash;
 
-    if (!(window.crypto && window.crypto.getRandomValues && (window.crypto.subtle || window.crypto.webkitSubtle))) {
-      alert('This browser does not fully suppor the crypto APIs.');
-    }
-
-    bindToolbar();
+    bindUpload();
     loadZeroClipboard();
-    loadContainerMenu();
+    refreshBlobList();
   };
 
-  var loadContainerMenu = function(callback) {
-    authService.getUserContainers(function(containers) {
-      containers.sort();
-
-      var source = $("#container-list-template").html();
-      var template = Handlebars.compile(source);
-      var viewModel = {
-        containers: containers
-      };
-      $('#container-list').html(template(viewModel));
-      var elements = document.getElementsByClassName("container-selector");
-      for (var i = elements.length - 1; i >= 0; i--) {
-        elements[i].addEventListener('click', selectContainer);
-      };
-
-      // If we have elements, preselect the first container
-      if (elements.length > 0) {
-        elements[0].click()
-      }
-      if (callback) {
-        callback();
-      }
-    });
-  };
-
-  var selectContainer = function(e) {
-    var elements = document.getElementsByClassName('container-selector');
-    for (var i = elements.length - 1; i >= 0; i--) {
-      elements[i].parentNode.classList.remove('active');
-    };
-    e.target.parentNode.classList.add('active');
-    var containerName = e.target.getAttribute('data-container')
-    console.log(containerName);
-    authService.getAzureBlobUri({
+  var refreshBlobList = function() {
+    authService.getAzureSasToken({
       containerName: containerName
-    }, function(uri) {
-      console.log(uri);
+    }, function(sasToken) {
+      var url = blobService.getContainerUrl(containerName, sasToken);
       console.log('Listing blobs for ' + containerName);
-      blobService.listBlobsInContainer(uri, containerName, loadBlobList)
+      // Azure blobs is randomly failing, so we just 
+      // retry here a few times until it works.
+      var retryCount = 0;
+      var execRetry = function() {
+        blobService.listBlobsInContainer(url, function(err, blobs) {
+          if (err) {
+            if (retryCount < 3) {
+              retryCount++;
+              setTimeout(execRetry, 500);
+            } else {
+              throw err;
+            }
+          }
+          loadBlobList(blobs || []);
+        });
+      };
+      execRetry();
     });
   };
 
@@ -111,17 +104,19 @@ var controller = (function() {
       console.log('ZeroClipboard error of type "' + event.name + '": ' + event.message);
       ZeroClipboard.destroy();
     });
-  }
+  };
 
   var bindBlobActions = function() {
 
     var getUrlHandler = function(e, callback) {
-      var containerName = e.target.getAttribute('data-container')
       var blobName = e.target.getAttribute('data-blob');
-      authService.getAzureBlobUri({
+      authService.getAzureSasToken({
         containerName: containerName,
         blobName: blobName
-      }, callback);
+      }, function(sasToken) {
+        var url = blobService.getBlobUrl(containerName, blobName, sasToken);
+        callback(url);
+      });
     }
 
     $('.share-link').on('click', function(e) {
@@ -146,86 +141,32 @@ var controller = (function() {
           if (err) {
             console.log(err);
           }
-          refreshBlobList(getCurrentContainerName());
+          refreshBlobList();
         });
 
       });
     })
-  }
-
-  var getCurrentContainerName = function() {
-    var elements = document.getElementsByClassName('container-selector');
-    var containerName;
-    for (var i = elements.length - 1; i >= 0; i--) {
-      if (elements[i].parentNode.classList.contains('active')) {
-        containerName = elements[i].getAttribute('data-container');
-        break;
-      }
-    };
-    return containerName;
-  }
+  };
 
   var uploadFile = function(file, callback) {
 
-    var containerName = getCurrentContainerName();
     console.log('Uploading file to container: ' + containerName);
 
-
-    if (!containerName) {
-      var err = {
-        message: 'Cannot determine active container'
-      };
-      console.log(err.message);
-      callback(err);
-    } else {
-      authService.getAzureBlobUri({
-        containerName: containerName,
-        blobName: uuid()
-      }, function(url) {
-        console.log('Created url for new blob: ' + url);
-        blobService.uploadFile(url, file, function(err) {
-          if (!err) {
-            refreshBlobList(containerName);
-          }
-          callback(err);
-        });
+    var blobName = Date.now().toString(); // Should be random, but this will do for a demo
+    authService.getAzureSasToken({
+      containerName: containerName,
+      blobName: blobName
+    }, function(sasToken) {
+      var url = blobService.getBlobUrl(containerName, blobName, sasToken);
+      console.log('Created url for new blob: ' + url);
+      blobService.uploadFile(url, file, function(err) {
+        if (!err) {
+          refreshBlobList();
+        }
+        callback(err);
       });
-    }
-  }
-
-  var refreshBlobList = function(containerName) {
-    authService.getAzureBlobUri({
-      containerName: containerName
-    }, function(uri) {
-      console.log('Listing blobs for ' + containerName);
-      blobService.listBlobsInContainer(uri, containerName, loadBlobList)
     });
-  }
-
-  var bindToolbar = function() {
-    bindUpload();
-
-    $('.create-button').on('click', function() {
-      document.getElementById('folder-input').value = '';
-      $('#folder-dialog').modal().show();
-    });
-
-    $('#folder-save-button').on('click', function() {
-      var friendlyName = document.getElementById('folder-input').value;
-      var containerName = uuid();
-      if (friendlyName && friendlyName.trim().length > 1) {
-        console.log('Creating blob: ' + friendlyName);
-        authService.createUserContainer(containerName, friendlyName, function(err) {
-          if (err) {
-            console.log(err);
-          }
-          loadContainerMenu(function() {
-            $('#folder-dialog').modal().hide();
-          });
-        });
-      }
-    });
-  }
+  };
 
   var bindUpload = function() {
     $('.upload-button').on('click', function() {
@@ -269,7 +210,6 @@ var controller = (function() {
     });
   };
 
-
   return {
     "load": load
   }
@@ -277,9 +217,19 @@ var controller = (function() {
 
 var blobService = (function() {
 
-  var listBlobsInContainer = function(uri, conatinerName, callback) {
-    if (!uri) {
-      throw 'uri must have a value';
+  var STORAGE_URL_BASE = 'https://' + window.config.azureStorageAccount + '.blob.core.windows.net/';
+
+  var getContainerUrl = function(containerName, sasToken) {
+    return STORAGE_URL_BASE + containerName + '?' + sasToken;
+  }
+
+  var getBlobUrl = function(containerName, blobName, sasToken) {
+     return STORAGE_URL_BASE + containerName + '/' + blobName + '?' + sasToken;
+  }
+
+  var listBlobsInContainer = function(url, callback) {
+    if (!url) {
+      throw 'url must have a value';
     }
     var getElementValue = function(element, tagName) {
       if (element) {
@@ -308,7 +258,6 @@ var blobService = (function() {
       for (var i = blobs.length - 1; i >= 0; i--) {
         var blob = blobs[i];
         model.push({
-          container: conatinerName,
           name: getElementValue(blob, 'Name'),
           fileName: getFileName(blob),
           contentType: getElementValue(blob, 'Content-Type'),
@@ -317,20 +266,20 @@ var blobService = (function() {
       };
       return model;
     }
-    var listBlobsUri = uri + '&restype=container&comp=list';
+    var listBlobsUrl = url + '&restype=container&comp=list';
     console.log('Listing blobs:');
-    console.log(listBlobsUri);
+    console.log(listBlobsUrl);
     $.ajax({
-      url: listBlobsUri,
+      url: listBlobsUrl,
       type: "GET",
       success: function(data, status) {
         var model = convertResponseToModel(data);
-        callback(model);
+        callback(null, model);
       },
       error: function(xhr, desc, err) {
         console.log(desc);
         console.log(err);
-        callback(err);
+        callback({ statusCode: xhr.status, message: err });
       }
     });
   }
@@ -358,12 +307,12 @@ var blobService = (function() {
   var totalBytesRemaining;
   var blockIds;
   var blockIdPrefix;
-  var submitUri;
+  var submitUrl;
   var bytesUploaded;
   var uploadCompleteCallback;
   var reader;
 
-  function uploadFile(uri, file, callback) {
+  function uploadFile(url, file, callback) {
     maxBlockSize = 256 * 1024;
     numberOfBlocks = 1;
     selectedFile = null;
@@ -371,17 +320,17 @@ var blobService = (function() {
     totalBytesRemaining = 0;
     blockIds = new Array();
     blockIdPrefix = "block-";
-    submitUri = null;
+    submitUrl = null;
     bytesUploaded = 0;
     uploadCompleteCallback = null;
 
     reader = new FileReader()
     reader.onloadend = function(evt) {
       if (evt.target.readyState == FileReader.DONE) { // DONE == 2
-        var uri = submitUri + '&comp=block&blockid=' + blockIds[blockIds.length - 1];
+        var url = submitUrl + '&comp=block&blockid=' + blockIds[blockIds.length - 1];
         var requestData = new Uint8Array(evt.target.result);
         $.ajax({
-          url: uri,
+          url: url,
           type: "PUT",
           data: requestData,
           processData: false,
@@ -416,7 +365,7 @@ var blobService = (function() {
       numberOfBlocks = parseInt(fileSize / maxBlockSize, 10) + 1;
     }
     console.log("total blocks = " + numberOfBlocks);
-    submitUri = uri;
+    submitUrl = url;
     selectedFile = file;
     uploadCompleteCallback = callback;
     uploadFileInBlocks();
@@ -441,15 +390,15 @@ var blobService = (function() {
   }
 
   function commitBlockList() {
-    var uri = submitUri + '&comp=blocklist';
-    console.log(uri);
+    var url = submitUrl + '&comp=blocklist';
+    console.log(url);
     var requestBody = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
     for (var i = 0; i < blockIds.length; i++) {
       requestBody += '<Latest>' + blockIds[i] + '</Latest>';
     }
     requestBody += '</BlockList>';
     $.ajax({
-      url: uri,
+      url: url,
       type: "PUT",
       data: requestBody,
       beforeSend: function(xhr) {
@@ -484,7 +433,9 @@ var blobService = (function() {
   return {
     "listBlobsInContainer": listBlobsInContainer,
     "uploadFile": uploadFile,
-    "deleteBlob": deleteBlob
+    "deleteBlob": deleteBlob,
+    "getContainerUrl": getContainerUrl,
+    "getBlobUrl": getBlobUrl
   }
 })();
 
@@ -498,158 +449,29 @@ var authService = (function(config) {
 
   var user = {
     get: function() {
-      if (!store.get('profile')) return;
+      if (!store.get('azure_sample_profile')) return;
       return {
-        profile: JSON.parse(store.get('profile')),
-        id_token: store.get('id_token')
+        profile: JSON.parse(store.get('azure_sample_profile')),
+        id_token: store.get('azure_sample_id_token')
       };
     }
   };
 
-  var getAzureBlobUri = function(options, callback) {
+  var getAzureSasToken = function(options, callback) {
     auth0.getDelegationToken({
       id_token: authService.user.get().id_token,
-      scope: "openid profile",
-      api_type: "app",
+      scope: "openid",
+      api_type: "azure_blob",
       containerName: options.containerName,
       blobName: options.blobName
     }, function(err, delegationResult) {
-      var data = auth0.decodeJwt(delegationResult.id_token);
-      callback(data.blob_sas_uri);
+      callback(delegationResult.azure_blob_sas);
     });
   };
-
-  var getUserContainers = function(callback) {
-    auth0.getDelegationToken({
-      id_token: user.get().id_token,
-      scope: "openid profile",
-      api_type: "app"
-    }, function(err, delegationResult) {
-      var data = auth0.decodeJwt(delegationResult.id_token);
-      if (data.containers) {
-        callback(data.containers);
-      } else {
-        callback([]);
-      }
-    });
-  };
-
-  var createUserContainer = function(containerName, containerFriendlyName, callback) {
-    auth0.getDelegationToken({
-      id_token: authService.user.get().id_token,
-      scope: "openid profile",
-      api_type: "app",
-      containerName: containerName,
-      containerFriendlyName: containerFriendlyName
-    }, function(err, delegationResult) {
-      var data = auth0.decodeJwt(delegationResult.id_token);
-      callback(data.blob_sas_uri);
-    });
-  }
 
   return {
     "user": user,
-    "getUserContainers": getUserContainers,
-    "getAzureBlobUri": getAzureBlobUri,
-    "createUserContainer": createUserContainer
+    "getAzureSasToken": getAzureSasToken
   }
 
 })(window.config);
-
-/*
-var cryptoService = (function() {
-
-  var pubKey;
-  var privKey;
-  var data = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]); // The data to be signed.
-  var encryptedData;
-  var decryptedData;
-  var crypto = window.crypto || window.msCrypto;
-
-  if (!crypto.subtle) {
-    console.log("Unable to create window.crypto object");
-  }
-
-  var genOp = crypto.subtle.generateKey({
-      name: "RSASSA-PKCS1-v1_5",
-      modulusLength: 2048,
-      publicExponent: new Uint8Array([0x01, 0x00, 0x01])
-    },
-    false, ["encrypt", "decrypt"]);
-
-  genOp.onerror = function(e) {
-    console.log("genOp.onerror event handler fired.");
-  }
-  genOp.oncomplete = function(e) {
-    pubKey = e.target.result.publicKey;
-    privKey = e.target.result.privateKey;
-
-    if (pubKey && privKey) {
-      console.log("generateKey RSASSA-PKCS1-v1_5: PASS");
-    } else {
-      console.log("generateKey RSASSA-PKCS1-v1_5: FAIL");
-    } // if-else
-
-    var signkey = crypto.subtle.sign({
-      name: "RSASSA-PKCS1-v1_5",
-      hash: "SHA-256"
-    }, privKey, data);
-
-    signkey.onerror = function(evt) {
-      console.log("signkey.onerror event handler fired.");
-    }
-
-    signkey.oncomplete = function(evt) {
-      signature = evt.target.result;
-
-      if (signature) {
-        console.log("Sign with RSASSA-PKCS1-v1_5 - SHA-256: PASS");
-      } else {
-        console.log("Sign with RSASSA-PKCS1-v1_5 - SHA-256: FAIL");
-      }
-
-      var verifysig = crypto.subtle.verify({
-        name: "RSASSA-PKCS1-v1_5",
-        hash: "SHA-256"
-      }, pubKey, signature, data);
-
-      verifysig.onerror = function(evt) {
-        console.log("Verify verifysig.onerror event handler fired.");
-      }
-
-      verifysig.oncomplete = function(evt) {
-        var verified = evt.target.result;
-
-        if (verified) {
-          console.log("Verify Operation for RSASSA-PKCS1-v1_5 - SHA-256: PASS");
-        } else {
-          console.log("Verify Operation for RSASSA-PKCS1-v1_5 - SHA-256: FAIL");
-        } // if-else
-      }; // verifysig.oncomplete
-    }; // signkey.oncomplete
-  }; // genOp.oncomplete
-
-  function encrypeFile(publicKey, file) {
-
-  }
-
-  function decryptFile(privateKey, file) {
-
-  }
-
-})();
-*/
-
-var uuid = function() {
-  // http://jsperf.com/uuid-generation-2
-  var buf = new Uint16Array(8);
-  window.crypto.getRandomValues(buf);
-  var S4 = function(num) {
-    var ret = num.toString(16);
-    while (ret.length < 4) {
-      ret = "0" + ret;
-    }
-    return ret;
-  };
-  return (S4(buf[0]) + S4(buf[1]) + "-" + S4(buf[2]) + "-" + S4(buf[3]) + "-" + S4(buf[4]) + "-" + S4(buf[5]) + S4(buf[6]) + S4(buf[7]));
-}

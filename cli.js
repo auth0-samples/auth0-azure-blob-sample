@@ -1,6 +1,5 @@
 var program = require('commander');
-//var blobService = require('./lib/blobservice');
-//var auth0Service = require('./lib/auth0service');
+var blobService = require('./lib/blobservice');
 
 program
   .version('0.0.1');
@@ -47,38 +46,5 @@ program
       }
     });
   });
-
-program
-  .command('appdata')
-  .description('deletes a blob container')
-  .action(function(name) {
-    var request = require('request');
-    request.get({
-        url: 'https://login.auth0.com/api/v2/users/' + 'google-oauth2|102896943058250370550',
-        headers: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiI3a3Jyd0UySERIRnY1aEFJU2gwdDd3eEI4em8yMUFUdSIsInNjb3BlcyI6eyJ1c2VycyI6eyJhY3Rpb25zIjpbInJlYWQiLCJ1cGRhdGUiXX0sInVzZXJzX2FwcF9tZXRhZGF0YSI6eyJhY3Rpb25zIjpbInJlYWQiLCJ1cGRhdGUiXX19LCJpYXQiOjE0MTg2ODMzMDQsImp0aSI6IjllNTBkZWY3ZDg1ZTg4ZGExMzVmZTRiZGNkNmEzZmMwIn0.2kGg4CM8QNi1Ngc7NvBp2Mh02DhE_h1bhi5hvDiNP7M'
-        }
-      },
-      function(error, response, body) {
-        // console.log(error);
-        // console.log(response);
-        console.log(body);
-      });
-  });
-
-program
-  .command('remove-access <email> <container>')
-  .description('removes all user permissions from a container')
-  .action(function(email, container) {
-    auth0Service.removeContainerAccess(email, container);
-  });
-
-program
-  .command('set-access <email> <container> <permissions>')
-  .description('removes all user permissions from a container')
-  .action(function(email, container, permissions) {
-    auth0Service.setContainerAccess(email, container, permissions);
-  });
-
 
 program.parse(process.argv);
