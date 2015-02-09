@@ -46,23 +46,12 @@ var controller = (function() {
     }, function(sasToken) {
       var url = blobService.getContainerUrl(containerName, sasToken);
       console.log('Listing blobs for ' + containerName);
-      // Azure blobs is randomly failing, so we just
-      // retry here a few times until it works.
-      var retryCount = 0;
-      var execRetry = function() {
-        blobService.listBlobsInContainer(url, function(err, blobs) {
-          if (err) {
-            if (retryCount < 3) {
-              retryCount++;
-              setTimeout(execRetry, 500);
-            } else {
-              throw err;
-            }
-          }
-          loadBlobList(blobs || []);
-        });
-      };
-      execRetry();
+      blobService.listBlobsInContainer(url, function(err, blobs) {
+        if (err) {
+          throw err;
+        }
+        loadBlobList(blobs || []);
+      });
     });
   };
 
