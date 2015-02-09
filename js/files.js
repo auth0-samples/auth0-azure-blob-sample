@@ -5,7 +5,7 @@ var controller = (function() {
   var containerName;
 
   var load = function() {
-    
+
     var logoutPath = window.location.pathname.replace('files.html', 'index.html');
     if (!authService.user.get()) {
       return location.href = logoutPath;
@@ -46,7 +46,7 @@ var controller = (function() {
     }, function(sasToken) {
       var url = blobService.getContainerUrl(containerName, sasToken);
       console.log('Listing blobs for ' + containerName);
-      // Azure blobs is randomly failing, so we just 
+      // Azure blobs is randomly failing, so we just
       // retry here a few times until it works.
       var retryCount = 0;
       var execRetry = function() {
@@ -215,9 +215,9 @@ var controller = (function() {
   }
 })();
 
-var blobService = (function() {
+var blobService = (function(config) {
 
-  var STORAGE_URL_BASE = 'https://' + window.config.azureStorageAccount + '.blob.core.windows.net/';
+  var STORAGE_URL_BASE = 'https://' + config.azureStorageAccount + '.blob.core.windows.net/';
 
   var getContainerUrl = function(containerName, sasToken) {
     return STORAGE_URL_BASE + containerName + '?' + sasToken;
@@ -261,7 +261,7 @@ var blobService = (function() {
           name: getElementValue(blob, 'Name'),
           fileName: getFileName(blob),
           contentType: getElementValue(blob, 'Content-Type'),
-          date: new Date(getElementValue(blob, 'Last-Modified')).toLocaleDateString(),
+          date: new Date(getElementValue(blob, 'Last-Modified')).toDateString(),
         });
       };
       return model;
@@ -437,7 +437,7 @@ var blobService = (function() {
     "getContainerUrl": getContainerUrl,
     "getBlobUrl": getBlobUrl
   }
-})();
+})(window.config);
 
 var authService = (function(config) {
 

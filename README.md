@@ -1,85 +1,96 @@
-## Backend-less dropbox clone
+## Azure Blob Share Sample
 
-This sample uses Auth0 and its integration with Azure Blob Storage.
+This samples shows how you can use Auth0 and the near infinite scale of Azure Blob Storage to build a rich and secure client application without a traditional backend. This example is built entirely in HTML/JavaScript and runs in the browser while still providing secure, authenticated access to resources in Azure Blob Storage.
 
-**Demo: <http://auth0.github.io/auth0-s3-sample>**
+**Demo: <http://auth0.github.io/auth0-azure-blob-sample/>**
 
-![](https://cloudup.com/cSwYBXbHdfc+)
+![](https://cloudup.com/cpVf72JC-_6+)
 
 ## How this works?
 
 1. User logs in with Auth0 (any identity provider)
 2. Auth0 returns a JSON Web Token to the browser
-3. The browser calls Auth0 `/delegation` endpoint to validate the token and exchange it for AWS temporal credentials
-  
+3. The browser calls Auth0 `/delegation` endpoint to validate the token and exchange it for an Azure Blob SAS token associated with the user's container. If the container doesn't exist it is created in the [rule](rule.js) that runs during the delegation request.
+
   ```js  
-  var aws_arns = { role: 'arn:aws:iam::account_number:role/role_name', principal: 'arn:aws:iam::account_number:saml-provider/provider_name' };
-  auth0.getDelegationToken(aws_api_auth0_clientid, jwt, aws_arns, function(err, result) {
-    var aws_credentials = result.Credentials; // AWS temp credentials
-    // call AWS API e.g. bucket.getObject(...)
+  auth0.getDelegationToken({
+    id_token: current_id_token,
+    scope: "openid",
+    api_type: "azure_blob",
+    containerName: id_hash + "my-container-name"
+  }, function(err, delegationResult) {
+    callback(delegationResult.azure_blob_sas);
   });
   ```
-  
-4. With the AWS credentials you can now call the AWS APIs and have policies using ${saml:sub} to create policies to authorize users to access a bucket, rows or columns in DynamoDB, sending an email, etc.
+
+4. With the Azure Blob SAS Token you can now request to list the blobs in that container.
+
+```js
+var url = 'https://blobshare.blob.core.windows.net/' + containerName +
+  '?' + sasToken + '&restype=container&comp=list';
+$.ajax({
+  url: url,
+  type: "GET",
+  success: function(data, status) {
+    var model = convertResponseToModel(data);
+    callback(null, model);
+  },
+  error: function(xhr, desc, err) {
+    callback(err);
+  }
+});
+
+```
+
+5. Finally, when you want to upload, download, or delete a blob you simply repeat the process over again by requests a SAS token for the particular blob through the delegation endpoint.
+
 
 ## FAQ
 
 ### How is this secure if it's all client side?
 
-The key is: when the user log in, we obtain an AWS session token. With this token and the IAM policy using `{saml:sub}` we can constraint the resources the client can access.
+The key to note here is that we are only giving the user limited access to the blobs or containers that we choose (via the rule). The Azure Storage Access Key is only use by Auth0 and never sent to the client. Thus, the client is only scoped to call APIs we grant them access to via the shared access keys.
 
-### What else can I do with AWS IAM policies?
+### Can I use more advanced permissions?
 
-Almost every API in AWS support IAM Policies. For instance, you can create a policy in DynamoDB to do fine grained access control as [shown here](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/FGAC_DDB.html)
-
-* [AWS Products that support IAM policies](http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_SpecificProducts.html)
-
-### What IAM policies this sample uses?
-
-A role needs to be created in the IAM console containing these two statements. These statements allow everything on a specific bucket path and allow listing the bucket objects with a prefix condition based on user id. This effectively creates a secure compartiment in S3 for each user.
-
-```
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-      "Sid": "AllowEverythingOnSpecificUserPath",
-      "Effect": "Allow",
-      "Action": [
-        "*"
-      ],
-      "Resource": [ 
-          "arn:aws:s3:::YOUR_BUCKET/dropboxclone/${saml:sub}",
-          "arn:aws:s3:::YOUR_BUCKET/dropboxclone/${saml:sub}/*"]
-   },
-   {
-      "Sid": "AllowListBucketIfSpecificPrefixIsIncludedInRequest",
-      "Action": ["s3:ListBucket"],
-      "Effect": "Allow",
-      "Resource": ["arn:aws:s3:::YOUR_BUCKET"],
-      "Condition":{ 
-        "StringEquals": { "s3:prefix":["dropboxclone/${saml:sub}"] }
-       }
-    }
-  ]
-}
-```
-
-The `${saml:sub}` variable in the policy is replaced in runtime by AWS with the user id. For example, if a user logged in with any of the identity providers supported by Auth0, and its `user_id` is `ad|3456783129`, then this policy will allow any action to the S3 resource with this path `YOUR_BUCKET/dropboxclone/ad|3456783129`. It will also allow executing `s3:ListBucket` over the bucket with the prefix `dropboxclone/ad|3456783129`.
+In this sample, we simply grant the user full access to a container that starts with their user id (hased). However, we can easily build a more robust role-based access policy that allows more fine-grained control of permissions. You can even store the roles and permissions with the user's metadata in Auth0 so you don't need a custom backend. You could then use [Auth0's API](https://auth0.com/docs/api) grant admins access to manage these permissions.
 
 ## Running it locally
 
-Install `serve` 
-    
+You can use any web server to serve the files in this folder. Below is a quick option for using the node 'serve' module. However, you can use any server you like as long as it runs on port 3000.
+
+Install `serve`
+
     npm install -g serve
 
-Run it on port 1338
+Run it on port 3000
 
-    serve -p 1338
+    serve -p 3000
 
-And point your browser to <http://localhost:1338>
+And point your browser to <http://localhost:3000>
 
-## Running CLI Tools
+## Setup Your Own Storage Account
 
-export AZURE_STORAGE_ACCOUNT=foo
-export AZURE_STORAGE_ACCESS_KEY=baz
-export AUTH0_API_AUTH_TOKEN=
+In order to use your own storage account with this sample you must configure the account to allow [cross domain requests](https://msdn.microsoft.com/en-us/library/azure/dn535601.aspx).
+
+The included cli tool will do this for you. You will need to set a few environment variables first as shown below.
+
+On OSX:
+
+~~~
+export AZURE_STORAGE_ACCOUNT=my_storage_account
+export AZURE_STORAGE_ACCESS_KEY=my_access_key
+~~~
+
+On Windows:
+
+~~~
+SET AZURE_STORAGE_ACCOUNT=my_storage_account
+SET AZURE_STORAGE_ACCESS_KEY=my_access_key
+~~~
+
+Then run the following command:
+
+~~~
+node setup_blob
+~~~
