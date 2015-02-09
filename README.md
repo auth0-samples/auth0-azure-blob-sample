@@ -25,22 +25,22 @@ This samples shows how you can use Auth0 and the near infinite scale of Azure Bl
 
 4. With the Azure Blob SAS Token you can now request to list the blobs in that container.
 
-```js
-var url = 'https://blobshare.blob.core.windows.net/' + containerName +
-  '?' + sasToken + '&restype=container&comp=list';
-$.ajax({
-  url: url,
-  type: "GET",
-  success: function(data, status) {
-    var model = convertResponseToModel(data);
-    callback(null, model);
-  },
-  error: function(xhr, desc, err) {
-    callback(err);
-  }
-});
+  ```js
+  var url = 'https://blobshare.blob.core.windows.net/' + containerName +
+    '?' + sasToken + '&restype=container&comp=list';
+  $.ajax({
+    url: url,
+    type: "GET",
+    success: function(data, status) {
+      var model = convertResponseToModel(data);
+      callback(null, model);
+    },
+    error: function(xhr, desc, err) {
+      callback(err);
+    }
+  });
 
-```
+  ```
 
 5. Finally, when you want to upload, download, or delete a blob you simply repeat the process over again by requests a SAS token for the particular blob through the delegation endpoint.
 
@@ -53,7 +53,7 @@ The key to note here is that we are only giving the user limited access to the b
 
 ### Can I use more advanced permissions?
 
-In this sample, we simply grant the user full access to a container that starts with their user id (hased). However, we can easily build a more robust role-based access policy that allows more fine-grained control of permissions. You can even store the roles and permissions with the user's metadata in Auth0 so you don't need a custom backend. You could then use [Auth0's API](https://auth0.com/docs/api) grant admins access to manage these permissions.
+In this sample, we simply grant the user full access to a container that starts with their user id (hashed). However, we can easily build a more robust role-based access policy that allows more fine-grained control of permissions. See our [documentation on rules](https://auth0.com/docs/rules) for more info.
 
 ## Running it locally
 
@@ -73,7 +73,7 @@ And point your browser to <http://localhost:3000>
 
 In order to use your own storage account with this sample you must configure the account to allow [cross domain requests](https://msdn.microsoft.com/en-us/library/azure/dn535601.aspx).
 
-The included cli tool will do this for you. You will need to set a few environment variables first as shown below.
+The included setup script will do this for you. You will need to set a few environment variables first as shown below.
 
 On OSX:
 
